@@ -9,14 +9,14 @@ class VisualGridHuntGame:
     def __init__(self, width=10, height=10, num_food=10, num_opponents=2, custom_walls=None):
         self.width = width
         self.height = height
-        self.agent_pos = [0, 0]  # Starting position (x, y)
+        self.agent_pos = [5, 3]  # Starting position (x, y)
         self.facing = 'Up'
 
         if custom_walls is not None:
             self.walls = set(custom_walls)
         else:
             # Generate some default scattered walls for a larger grid
-            self.walls = {(2, 2), (2, 3), (5, 5), (6, 5), (3, 7)}
+            self.walls = {(4, 2), (4, 3),(4,4), (5, 2), (6, 2), (7, 2), (7,3), (7,4)}
 
         # Dynamically generate random food positions avoiding walls and agent start
         self.food_positions = set()
@@ -113,6 +113,20 @@ class VisualGridHuntGame:
         return len(self.food_positions) == 0 or self.steps >= 60 or self.collision
 
 
+class SimpleReflexAgent:
+    """A Simple Reflex Agent that acts only on the current percept."""
+
+
+    def sense_and_act(self, percept):
+
+        if percept['food_here']:
+            return 'Stay'
+
+        elif percept['wall_ahead']:
+            return 'Left'
+
+        else:
+            return 'Up'
 
 
 class GridGameGUI:
@@ -186,9 +200,18 @@ class GridGameGUI:
     def run_loop(self):
         self.btn.config(state="disabled")
 
+        # 1. Initialize the agent
+        agent = SimpleReflexAgent()
+
         def step():
             if not self.env.is_done():
-                action = random.choice(['Up', 'Down', 'Left', 'Right'])
+                # 2. Get the current percept from the environment
+                percept = self.env.get_percept()
+
+                # 3. Pass percept to agent to get an action
+                action = agent.sense_and_act(percept)
+
+                # 4. Execute the action
                 self.env.execute_action(action)
 
                 self.draw_grid()

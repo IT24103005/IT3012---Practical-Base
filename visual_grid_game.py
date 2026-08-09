@@ -129,6 +129,68 @@ class SimpleReflexAgent:
             return 'Up'
 
 
+class ModelBasedAgent:
+    """A Model-Based Agent that uses memory to track visited states and avoid loops."""
+
+    def __init__(self):
+        self.visited_cells = set()
+        self.current_pos = (0, 0)  # Tracks relative position assuming start is (0,0)
+        self.facing = 'Up'  # Tracks current orientation
+        self.last_action = None
+
+    def sense_and_act(self, percept):
+        if self.last_action in ['Up', 'Down', 'Left', 'Right']:
+            self.facing = self.last_action
+
+            x, y = self.current_pos
+            if self.last_action == 'Up':
+                y += 1
+            elif self.last_action == 'Down':
+                y -= 1
+            elif self.last_action == 'Left':
+                x -= 1
+            elif self.last_action == 'Right':
+                x += 1
+            self.current_pos = (x, y)
+
+        # Record the current position as visited
+        self.visited_cells.add(self.current_pos)
+
+        x, y = self.current_pos
+        if self.facing == 'Up':
+            left_pos = (x - 1, y)
+            turn_left, turn_right = 'Left', 'Right'
+        elif self.facing == 'Down':
+            left_pos = (x + 1, y)
+            turn_left, turn_right = 'Right', 'Left'
+        elif self.facing == 'Left':
+            left_pos = (x, y - 1)
+            turn_left, turn_right = 'Down', 'Up'
+        elif self.facing == 'Right':  # Right
+            left_pos = (x, y + 1)
+            turn_left, turn_right = 'Up', 'Down'
+
+        # Check memory to see if the cell to our relative left has been visited
+        left_is_visited = left_pos in self.visited_cells
+
+        if percept['food_here']:
+            action = 'Stay'
+
+        elif percept['wall_ahead']:
+            if left_is_visited:
+                action = turn_right
+            else:
+                action = turn_left
+
+        else:
+            # Continue moving forward if the path is clear
+            action = self.facing
+
+        # Record action for the next step's state update
+        self.last_action = action
+        return action
+
+
 class GridGameGUI:
     """Tkinter wrapper that dynamically scales cell sizes to keep larger grids on screen."""
 
@@ -201,7 +263,7 @@ class GridGameGUI:
         self.btn.config(state="disabled")
 
         # 1. Initialize the agent
-        agent = SimpleReflexAgent()
+        agent = ModelBasedAgent()
 
         def step():
             if not self.env.is_done():

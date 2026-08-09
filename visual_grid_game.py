@@ -10,6 +10,7 @@ class VisualGridHuntGame:
         self.width = width
         self.height = height
         self.agent_pos = [0, 0]  # Starting position (x, y)
+        self.facing = 'Up'
 
         if custom_walls is not None:
             self.walls = set(custom_walls)
@@ -40,19 +41,39 @@ class VisualGridHuntGame:
         self.collision = False
 
     def get_percept(self) -> dict:
+        ax, ay = self.agent_pos
+
+        if self.facing == 'Up':
+            ahead_pos = (ax, ay + 1)
+        elif self.facing == 'Down':
+            ahead_pos = (ax, ay - 1)
+        elif self.facing == 'Left':
+            ahead_pos = (ax - 1, ay)
+        elif self.facing == 'Right':
+            ahead_pos = (ax + 1, ay)
+        else:
+            ahead_pos = (ax, ay)
+
+
+        is_wall_ahead = (
+                ahead_pos in self.walls or
+                ahead_pos[0] < 0 or ahead_pos[0] >= self.width or
+                ahead_pos[1] < 0 or ahead_pos[1] >= self.height
+        )
+
+        is_food_here = tuple(self.agent_pos) in self.food_positions
+
         return {
-            'agent_pos': list(self.agent_pos),
-            'opponent_positions': [list(op) for op in self.opponents],
-            'smells_food': tuple(self.agent_pos) in self.food_positions,
-            'hit_wall': tuple(self.agent_pos) in self.walls,
-            'collision': self.collision,
-            'score': self.score,
-            'remaining_food': len(self.food_positions)
+            'wall_ahead': is_wall_ahead,
+            'food_here': is_food_here
         }
 
     def execute_action(self, action: str):
         self.steps += 1
         new_pos = list(self.agent_pos)
+
+        if action in ['Up', 'Down', 'Left', 'Right']:
+            self.facing = action
 
         if action == 'Up':
             new_pos[1] = min(self.height - 1, new_pos[1] + 1)
@@ -90,6 +111,8 @@ class VisualGridHuntGame:
 
     def is_done(self) -> bool:
         return len(self.food_positions) == 0 or self.steps >= 60 or self.collision
+
+
 
 
 class GridGameGUI:

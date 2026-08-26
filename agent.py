@@ -20,6 +20,8 @@ class SearchAgent:
 
     def __init__(self):
         self.actions_pool = ['Up', 'Down', 'Left', 'Right']
+        self.plan = []
+        self.active_algo = 'DFS'
 
     def bfs_search(self, start, goal, grid_width, grid_height, walls):
         """
@@ -121,5 +123,49 @@ class SearchAgent:
                 if new_node_tuple not in walls and new_cost < reached.get(new_node_tuple, float('inf')):
                     reached[new_node_tuple] = new_cost
                     heapq.heappush(frontier, (new_cost, new_node, path + [action]))
+
+                def find_closest_food(self, agent_pos, food_list):
+                    """Find the closest food pellet from the list."""
+                    if not food_list:
+                        return None
+
+                    closest = None
+                    min_distance = float('inf')
+
+                    for food in food_list:
+                        distance = abs(agent_pos[0] - food[0]) + abs(agent_pos[1] - food[1])
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest = food
+
+                    return closest
+
+                def sense_and_act(self, percept: dict) -> str:
+                    """Execute plan step-by-step. If plan is empty, create a new plan to nearest food."""
+                    if not self.plan:
+                        agent_pos = percept['agent_pos']
+                        food_list = percept.get('all_food', [])
+
+                        if food_list:
+                            closest_food = self.find_closest_food(agent_pos, food_list)
+
+                            if closest_food:
+                                walls = set(tuple(w) for w in percept.get('walls', []))
+                                grid_size = percept.get('grid_size', (4, 4))
+
+                                if self.active_algo == 'BFS':
+                                    self.plan = self.bfs_search(agent_pos, closest_food, grid_size[0], grid_size[1],
+                                                                walls)
+                                elif self.active_algo == 'DFS':
+                                    self.plan = self.dfs_search(agent_pos, closest_food, grid_size[0], grid_size[1],
+                                                                walls)
+                                elif self.active_algo == 'UCS':
+                                    self.plan = self.ucs_search(agent_pos, closest_food, grid_size[0], grid_size[1],
+                                                                walls)
+
+                    if self.plan:
+                        return self.plan.pop(0)
+                    else:
+                        return 'Up'
 
         return []

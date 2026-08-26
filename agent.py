@@ -20,6 +20,10 @@ class GreedyGridAgent:
 class SearchAgent:
     """An agent that solves problems using search algorithms."""
 
+    def __init__(self, active_algo='AStar'):
+        self.active_algo = active_algo
+        self.plan = []
+
     def manhattan_distance(self, pos, goal):
         """
         Calculates Manhattan distance (taxicab distance) between two positions.
@@ -110,6 +114,41 @@ class SearchAgent:
 
         # No path found
         return []
+
+    def sense_and_act(self, percept: dict) -> str:
+        """
+        Perceives the environment and decides the next action.
+        Uses A* search to find the path to the closest food.
+        """
+        current_pos = tuple(percept['agent_pos'])
+        remaining_food = percept['remaining_food']
+
+        # If no food left, do nothing
+        if remaining_food == 0:
+            return 'Stay'
+
+        # Check if we need to plan a new path
+        if not self.plan:
+            # Extract grid information from percept
+            walls = percept.get('walls', [])
+            grid_size = percept.get('grid_size', (10, 10))
+            food_positions = percept.get('food_positions', set())
+
+            if food_positions:
+                # Find closest food as goal
+                goal_pos = min(food_positions, key=lambda f: self.manhattan_distance(current_pos, f))
+
+                # Call A* search based on active algorithm
+                if self.active_algo == 'AStar':
+                    self.plan = self.astar_search(current_pos, goal_pos, walls, grid_size, heuristic_type="manhattan")
+
+        # Execute the plan
+        if self.plan:
+            action = self.plan.pop(0)
+            return action
+
+        return random.choice(['Up', 'Down', 'Left', 'Right'])
+
 
 # Testing Checkpoint
 if __name__ == "__main__":
